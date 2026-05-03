@@ -6,6 +6,24 @@ API REST em Node.js com Express para cálculo de orçamentos de projetos arquite
 
 Esta API permite que arquitetos calculem o valor de projetos com base em diferentes métodos de cobrança (m², horas, ou combinado) e adicionem diversos tipos de serviços como renders, mobiliário, paginação de pisos e acompanhamento de obra.
 
+## Evidências e Testes
+
+Este projeto inclui não apenas testes automatizados, mas também uma documentação completa de testes manuais, evidências e cenários validados.
+
+* Testes Manuais:
+  https://github.com/gabrielh-oliveira96/structa-api/wiki/Testes-Manuais
+
+* Evidências dos Testes:
+  https://github.com/gabrielh-oliveira96/structa-api/wiki/Evidencias
+
+## Documentação de Testes
+
+A documentação completa dos testes manuais e evidências pode ser acessada na Wiki:
+
+- Testes Manuais
+- Evidências de Testes
+- Documentação Formal  
+
 ## Funcionalidades
 
 - ✓ Cálculo de orçamento por m²
