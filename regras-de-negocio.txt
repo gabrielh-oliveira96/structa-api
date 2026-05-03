@@ -1,0 +1,574 @@
+================================================================================
+REGRAS DE NEGÓCIO - CÁLCULO DE ORÇAMENTO ARQUITETÔNICO
+================================================================================
+
+DATA DE CRIAÇÃO: Janeiro 2024
+VERSÃO: 1.0
+RESPONSÁVEL: API de Cálculo de Orçamento
+
+================================================================================
+1. TIPOS DE COBRANÇA
+================================================================================
+
+1.1 COBRANÇA POR M² (Metro Quadrado)
+------------------------------------
+Quando tipoCobranca = "m2"
+
+Cálculo:
+  valorBase = area × valorM2
+
+Exemplo:
+  area = 100 m²
+  valorM2 = R$ 150
+  valorBase = 100 × 150 = R$ 15.000
+
+Casos de Uso:
+  - Projetos com metragem bem definida
+  - Reformas de área específica
+  - Decoração por área
+
+
+1.2 COBRANÇA POR HORA
+------------------------------------
+Quando tipoCobranca = "hora"
+
+Cálculo:
+  valorBase = horasTrabalho × valorHora
+
+Exemplo:
+  horasTrabalho = 40 horas
+  valorHora = R$ 150
+  valorBase = 40 × 150 = R$ 6.000
+
+Casos de Uso:
+  - Consultoria arquitetônica
+  - Projetos com escopo variável
+  - Serviços de design
+
+
+1.3 COBRANÇA COMBINADA (Média Ponderada)
+------------------------------------
+Quando tipoCobranca = "ambos"
+
+Este método combina valor por m² e por hora usando pesos que variam
+conforme o nível de detalhamento do projeto.
+
+Cálculo Base:
+  valorM2Total = area × valorM2
+  valorHoraTotal = horasTrabalho × valorHora
+
+Depois aplica pesos conforme nivelDetalhamento:
+
+1.3.1 NÍVEL BAIXO (pesoM2 = 0.7, pesoHora = 0.3)
+  
+  Utilizado para:
+    - Projetos simples
+    - Reformas básicas
+    - Trabalhos com menos complexidade
+
+  Fórmula:
+    valorBase = (valorM2Total × 0.7 + valorHoraTotal × 0.3) / (0.7 + 0.3)
+    valorBase = (valorM2Total × 0.7 + valorHoraTotal × 0.3) / 1.0
+    valorBase = (valorM2Total × 0.7) + (valorHoraTotal × 0.3)
+
+  Exemplo:
+    valorM2Total = 100 × 100 = R$ 10.000
+    valorHoraTotal = 50 × 100 = R$ 5.000
+    valorBase = (10.000 × 0.7) + (5.000 × 0.3)
+    valorBase = 7.000 + 1.500 = R$ 8.500
+
+
+1.3.2 NÍVEL MÉDIO (pesoM2 = 0.5, pesoHora = 0.5)
+  
+  Utilizado para:
+    - Projetos padrão
+    - Escritórios
+    - Reformas complexas
+
+  Fórmula:
+    valorBase = (valorM2Total × 0.5 + valorHoraTotal × 0.5) / (0.5 + 0.5)
+    valorBase = (valorM2Total × 0.5 + valorHoraTotal × 0.5) / 1.0
+    valorBase = (valorM2Total × 0.5) + (valorHoraTotal × 0.5)
+
+  Exemplo:
+    valorM2Total = 100 × 100 = R$ 10.000
+    valorHoraTotal = 50 × 100 = R$ 5.000
+    valorBase = (10.000 × 0.5) + (5.000 × 0.5)
+    valorBase = 5.000 + 2.500 = R$ 7.500
+
+
+1.3.3 NÍVEL ALTO (pesoM2 = 0.3, pesoHora = 0.7)
+  
+  Utilizado para:
+    - Projetos residenciais completos
+    - Designs sofisticados
+    - Trabalhos de alta complexidade
+
+  Fórmula:
+    valorBase = (valorM2Total × 0.3 + valorHoraTotal × 0.7) / (0.3 + 0.7)
+    valorBase = (valorM2Total × 0.3 + valorHoraTotal × 0.7) / 1.0
+    valorBase = (valorM2Total × 0.3) + (valorHoraTotal × 0.7)
+
+  Exemplo:
+    valorM2Total = 100 × 100 = R$ 10.000
+    valorHoraTotal = 50 × 100 = R$ 5.000
+    valorBase = (10.000 × 0.3) + (5.000 × 0.7)
+    valorBase = 3.000 + 3.500 = R$ 6.500
+
+
+================================================================================
+2. ADICIONAIS
+================================================================================
+
+Os adicionais são valores extras adicionados ao valorBase quando ativados.
+Todos os adicionais possuem campo "ativo" que determina se devem ser incluídos.
+
+2.1 RENDERS (Visualizações 3D)
+------------------------------------
+Campo: renders
+
+Quando renders.ativo = true:
+  valorRender = quantidade × valorUnitario
+
+Quando renders.ativo = false:
+  valorRender = 0 (ignorado)
+
+Exemplo:
+  quantidade = 3
+  valorUnitario = R$ 500
+  valorRender = 3 × 500 = R$ 1.500
+
+Notas:
+  - Cada render é uma visualização 3D do projeto
+  - O cliente define quantidade e valor por render
+  - Se inativo, quantidade e valor não são considerados
+
+
+2.2 MOBILIÁRIO
+------------------------------------
+Campo: mobiliario
+
+Quando mobiliario.ativo = true:
+  valorMobiliario = SOMA de todos os itens
+
+Quando mobiliario.ativo = false:
+  valorMobiliario = 0 (ignorado)
+
+Exemplo:
+  itens = [
+    { nome: "Sofá", valor: 2.000 },
+    { nome: "Mesa", valor: 1.500 },
+    { nome: "Cadeira", valor: 800 }
+  ]
+  valorMobiliario = 2.000 + 1.500 + 800 = R$ 4.300
+
+Notas:
+  - Cada item deve ter nome e valor positivo
+  - Pode haver múltiplos itens
+  - Se inativo, nenhum item é considerado
+
+
+2.3 PAGINAÇÃO DE PISOS
+------------------------------------
+Campo: paginacaoPisos
+
+Quando paginacaoPisos.ativo = true:
+  valorPaginacao = area × valorM2
+
+Quando paginacaoPisos.ativo = false:
+  valorPaginacao = 0 (ignorado)
+
+Exemplo:
+  area = 50 m²
+  valorM2 = R$ 200
+  valorPaginacao = 50 × 200 = R$ 10.000
+
+Notas:
+  - Área pode ser diferente da área do projeto
+  - Geralmente é a área de pisos a paginar
+  - Se inativo, não é considerado
+
+
+2.4 ACOMPANHAMENTO DE OBRA
+------------------------------------
+Campo: acompanhamentoObra
+
+Este adicional possui tratamento especial: pode ser "visita" ou "completo"
+
+Quando acompanhamentoObra.ativo = false:
+  valor = 0
+  Não entra no cálculo
+
+Quando acompanhamentoObra.ativo = true:
+  
+  Se tipo = "visita":
+    - O valor é informado separadamente (não entra no valorFinal)
+    - Usado para acompanhamentos ocasionais
+    - Retornado na resposta para informação
+    - NÃO é adicionado ao valorFinal
+  
+  Se tipo = "completo":
+    - O valor ENTRA no valorFinal
+    - Usado para acompanhamento integral da obra
+    - É adicionado ao valorFinal
+
+Exemplos:
+
+Visita:
+  tipo = "visita"
+  valor = R$ 500
+  Retornado: { tipo: "visita", valor: 500 }
+  Efeito no valorFinal: NÃO entra
+
+Completo:
+  tipo = "completo"
+  valor = R$ 3.000
+  Retornado: { tipo: "completo", valor: 3000 }
+  Efeito no valorFinal: ENTRA
+
+Notas:
+  - Sempre retornado na resposta, mesmo que inativo (valor = 0)
+  - Apenas tipo "completo" afeta o valorFinal
+  - Visitas são informativas
+
+
+================================================================================
+3. CÁLCULO FINAL
+================================================================================
+
+3.1 SOMA DOS ADICIONAIS
+------------------------------------
+Os adicionais que ENTRAM no valorFinal são:
+  - renders (se ativo)
+  - mobiliario (se ativo)
+  - paginacaoPisos (se ativo)
+  - acompanhamentoObra (se ativo E tipo = "completo")
+
+Formula:
+  somaAdicionais = valorRender + valorMobiliario + valorPaginacao + 
+                   (acompanhamentoObra se tipo = "completo", senão 0)
+
+Nota Importante:
+  - Se acompanhamento tipo = "visita": NÃO entra em somaAdicionais
+  - Se acompanhamento inativo: valor = 0, não entra
+
+
+3.2 VALOR FINAL
+------------------------------------
+Formula:
+  valorFinal = valorBase + somaAdicionais
+
+Exemplo Completo:
+  valorBase = R$ 10.000
+  valorRender = R$ 1.500 (ativo)
+  valorMobiliario = R$ 3.500 (ativo)
+  valorPaginacao = R$ 5.000 (ativo)
+  acompanhamento = R$ 2.000 (completo, ativo)
+  
+  somaAdicionais = 1.500 + 3.500 + 5.000 + 2.000 = R$ 12.000
+  valorFinal = 10.000 + 12.000 = R$ 22.000
+
+Exemplo com Visita:
+  valorBase = R$ 10.000
+  valorRender = R$ 1.500 (ativo)
+  acompanhamento = R$ 500 (visita, ativo)
+  
+  somaAdicionais = 1.500 + 0 = R$ 1.500
+  valorFinal = 10.000 + 1.500 = R$ 11.500
+  (Acompanhamento tipo "visita" não entra na soma)
+
+
+================================================================================
+4. VALIDAÇÃO DE DADOS
+================================================================================
+
+Todos os dados de entrada devem ser validados ANTES do cálculo:
+
+4.1 CAMPOS OBRIGATÓRIOS (não podem ser vazios)
+------------------------------------
+- cliente: string não vazia
+- nomeProjeto: string não vazia
+- tipoCobranca: deve ser "m2", "hora" ou "ambos"
+- nivelDetalhamento: deve ser "baixo", "medio" ou "alto"
+- prazoEntrega: string não vazia
+- acompanhamentoObra.tipo: deve ser "visita" ou "completo"
+
+
+4.2 VALORES NUMÉRICOS
+------------------------------------
+Positivos (> 0):
+  - area (para m²)
+  - valorM2 (quando aplicável)
+  - horasTrabalho (quando aplicável)
+  - valorHora (quando aplicável)
+  - quantidade de renders
+  - valorUnitario de renders
+  - valor de cada item de mobiliário
+  - area de paginação (quando ativa)
+  - valorM2 de paginação (quando ativa)
+  - valor de acompanhamento
+
+Não-negativos (>= 0):
+  - Qualquer valor que pode ser zero (quando adicional está inativo)
+
+
+4.3 ENUMS VÁLIDOS
+------------------------------------
+tipoCobranca: "m2" | "hora" | "ambos"
+nivelDetalhamento: "baixo" | "medio" | "alto"
+tipo acompanhamento: "visita" | "completo"
+
+
+4.4 ESTRUTURA DE OBJETOS
+------------------------------------
+renders:
+  - ativo: boolean
+  - quantidade: number >= 0
+  - valorUnitario: number > 0
+
+mobiliario:
+  - ativo: boolean
+  - itens: array
+    - cada item: { nome: string, valor: number > 0 }
+
+paginacaoPisos:
+  - ativo: boolean
+  - area: number > 0
+  - valorM2: number > 0
+
+acompanhamentoObra:
+  - ativo: boolean
+  - tipo: "visita" | "completo"
+  - valor: number > 0
+
+
+================================================================================
+5. RESPOSTA DA API
+================================================================================
+
+A resposta sempre segue este padrão:
+
+{
+  "cliente": "string (mesmo do input)",
+  "projeto": "string (nomeProjeto do input)",
+  "valorBase": "number (com 2 casas decimais)",
+  "adicionais": {
+    "render": "number (com 2 casas decimais)",
+    "mobiliario": "number (com 2 casas decimais)",
+    "paginacaoPisos": "number (com 2 casas decimais)"
+  },
+  "valorFinal": "number (com 2 casas decimais)",
+  "acompanhamentoObra": {
+    "tipo": "visita" | "completo",
+    "valor": "number (com 2 casas decimais)"
+  },
+  "metodoCalculo": "m2" | "hora" | "media_ponderada"
+}
+
+Notas Importantes:
+  - Todos os valores monetários com 2 casas decimais
+  - acompanhamentoObra sempre está presente na resposta
+  - metodoCalculo indica qual método foi usado para calcular valorBase
+  - Se acompanhamento inativo: tipo = "visita", valor = 0
+
+
+================================================================================
+6. TRATAMENTO DE ERROS
+================================================================================
+
+Erro de Validação (400 Bad Request):
+{
+  "erro": "Validação de entrada falhou",
+  "detalhes": [
+    {
+      "campo": "area",
+      "mensagem": "Área deve ser um valor positivo"
+    }
+  ]
+}
+
+Erro Interno (500 Internal Server Error):
+{
+  "erro": "Erro interno do servidor"
+}
+
+Mensagens de Erro Específicas:
+  - "Área deve ser um valor positivo"
+  - "Valor m² deve ser positivo"
+  - "Horas de trabalho deve ser não-negativa"
+  - "Valor hora deve ser não-negativo"
+  - "Tipo de cobrança deve ser 'm2', 'hora' ou 'ambos'"
+  - "Nível de detalhamento deve ser 'baixo', 'medio' ou 'alto'"
+  - "Nome do cliente é obrigatório"
+  - Etc.
+
+
+================================================================================
+7. EXEMPLOS PRÁTICOS
+================================================================================
+
+7.1 REFORMA SIMPLES (m² básico)
+------------------------------------
+Input:
+{
+  "cliente": "Maria Silva",
+  "nomeProjeto": "Reforma Cozinha",
+  "tipoCobranca": "m2",
+  "area": 20,
+  "valorM2": 250,
+  "horasTrabalho": 0,
+  "valorHora": 0,
+  "nivelDetalhamento": "baixo",
+  "renders": {"ativo": false, "quantidade": 0, "valorUnitario": 0},
+  "mobiliario": {"ativo": false, "itens": []},
+  "paginacaoPisos": {"ativo": false, "area": 0, "valorM2": 0},
+  "acompanhamentoObra": {"ativo": false, "tipo": "visita", "valor": 0},
+  "prazoEntrega": "2 semanas"
+}
+
+Cálculo:
+  valorBase = 20 × 250 = R$ 5.000
+  Nenhum adicional ativo
+  valorFinal = R$ 5.000
+
+Response:
+{
+  "cliente": "Maria Silva",
+  "projeto": "Reforma Cozinha",
+  "valorBase": 5000,
+  "adicionais": {"render": 0, "mobiliario": 0, "paginacaoPisos": 0},
+  "valorFinal": 5000,
+  "acompanhamentoObra": {"tipo": "visita", "valor": 0},
+  "metodoCalculo": "m2"
+}
+
+
+7.2 PROJETO RESIDENCIAL COMPLETO
+------------------------------------
+Input:
+{
+  "cliente": "João e Maria",
+  "nomeProjeto": "Apartamento 4 Quartos",
+  "tipoCobranca": "ambos",
+  "area": 150,
+  "valorM2": 120,
+  "horasTrabalho": 100,
+  "valorHora": 150,
+  "nivelDetalhamento": "alto",
+  "renders": {"ativo": true, "quantidade": 8, "valorUnitario": 1000},
+  "mobiliario": {
+    "ativo": true,
+    "itens": [
+      {"nome": "Sofá", "valor": 4000},
+      {"nome": "Rack", "valor": 2000},
+      {"nome": "Cama", "valor": 3000},
+      {"nome": "Guarda-roupa", "valor": 5000}
+    ]
+  },
+  "paginacaoPisos": {"ativo": true, "area": 150, "valorM2": 80},
+  "acompanhamentoObra": {"ativo": true, "tipo": "completo", "valor": 5000},
+  "prazoEntrega": "120 dias"
+}
+
+Cálculo:
+  valorM2Total = 150 × 120 = R$ 18.000
+  valorHoraTotal = 100 × 150 = R$ 15.000
+  
+  Nível Alto (pesoM2 = 0.3, pesoHora = 0.7):
+  valorBase = (18.000 × 0.3) + (15.000 × 0.7)
+  valorBase = 5.400 + 10.500 = R$ 15.900
+  
+  Renders: 8 × 1000 = R$ 8.000
+  Mobiliário: 4000 + 2000 + 3000 + 5000 = R$ 14.000
+  Paginação: 150 × 80 = R$ 12.000
+  Acompanhamento (completo): R$ 5.000
+  
+  somaAdicionais = 8.000 + 14.000 + 12.000 + 5.000 = R$ 39.000
+  valorFinal = 15.900 + 39.000 = R$ 54.900
+
+Response:
+{
+  "cliente": "João e Maria",
+  "projeto": "Apartamento 4 Quartos",
+  "valorBase": 15900,
+  "adicionais": {
+    "render": 8000,
+    "mobiliario": 14000,
+    "paginacaoPisos": 12000
+  },
+  "valorFinal": 54900,
+  "acompanhamentoObra": {"tipo": "completo", "valor": 5000},
+  "metodoCalculo": "media_ponderada"
+}
+
+
+7.3 CONSULTORIA (hora)
+------------------------------------
+Input:
+{
+  "cliente": "Empresa Construção",
+  "nomeProjeto": "Consultoria Projeto",
+  "tipoCobranca": "hora",
+  "area": 0,
+  "valorM2": 0,
+  "horasTrabalho": 40,
+  "valorHora": 200,
+  "nivelDetalhamento": "medio",
+  "renders": {"ativo": true, "quantidade": 2, "valorUnitario": 800},
+  "mobiliario": {"ativo": false, "itens": []},
+  "paginacaoPisos": {"ativo": false, "area": 0, "valorM2": 0},
+  "acompanhamentoObra": {"ativo": true, "tipo": "visita", "valor": 300},
+  "prazoEntrega": "1 semana"
+}
+
+Cálculo:
+  valorBase = 40 × 200 = R$ 8.000
+  Renders: 2 × 800 = R$ 1.600
+  Acompanhamento (visita): NÃO entra
+  
+  somaAdicionais = 1.600
+  valorFinal = 8.000 + 1.600 = R$ 9.600
+
+Response:
+{
+  "cliente": "Empresa Construção",
+  "projeto": "Consultoria Projeto",
+  "valorBase": 8000,
+  "adicionais": {
+    "render": 1600,
+    "mobiliario": 0,
+    "paginacaoPisos": 0
+  },
+  "valorFinal": 9600,
+  "acompanhamentoObra": {"tipo": "visita", "valor": 300},
+  "metodoCalculo": "hora"
+}
+
+
+================================================================================
+8. NOTAS IMPORTANTES
+================================================================================
+
+8.1 Precisão Numérica
+  - Todos os cálculos são arredondados para 2 casas decimais
+  - Usar Math.round(valor * 100) / 100 para arredondamento
+
+8.2 Dados Zero
+  - Quando um adicional está inativo, considere como 0
+  - Não deixar undefined ou null
+  - Sempre retornar 0 (zero)
+
+8.3 Acompanhamento de Obra
+  - Sempre retornado na resposta
+  - Sempre tem tipo e valor
+  - Tipo "visita" é apenas informativo
+  - Tipo "completo" entra no cálculo
+
+8.4 Mudanças Futuras
+  - Estrutura preparada para adicionar novos tipos de adicionais
+  - Possibilidade de novos níveis de detalhamento
+  - Possibilidade de descontos percentuais
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================
