@@ -526,7 +526,7 @@ describe('API de Cálculo de Orçamento Arquitetônico', () => {
       expect(Array.isArray(res.body.detalhes)).toBe(true);
     });
 
-    it('deve retornar erro 400 quando area for zero em m2', async () => {
+    it('deve calcular com area igual a zero em m2', async () => {
       const payload = criarPayloadPadrao({
         tipoCobranca: 'm2',
         area: 0,
@@ -536,9 +536,10 @@ describe('API de Cálculo de Orçamento Arquitetônico', () => {
       const res = await request(app)
         .post('/orcamentos/calcular')
         .send(payload)
-        .expect(400);
+        .expect(200);
 
-      expect(res.body).toHaveProperty('erro');
+      expect(res.body.valorBase).toBe(0);
+      expect(res.body.valorFinal).toBe(0);
     });
 
     it('deve retornar erro 400 quando horasTrabalho for negativo', async () => {
@@ -740,21 +741,26 @@ describe('API de Cálculo de Orçamento Arquitetônico', () => {
       expect(res.body).toHaveProperty('erro');
     });
 
-    it('deve retornar erro 400 para tipo ambos sem area em m2', async () => {
+    it('deve calcular quando type ambos com area zero mas horas positivas', async () => {
       const payload = criarPayloadPadrao({
         tipoCobranca: 'ambos',
         area: 0,
         valorM2: 100,
         horasTrabalho: 50,
-        valorHora: 100
+        valorHora: 100,
+        nivelDetalhamento: 'medio'
       });
 
       const res = await request(app)
         .post('/orcamentos/calcular')
         .send(payload)
-        .expect(400);
+        .expect(200);
 
-      expect(res.body).toHaveProperty('erro');
+      // area = 0, valorM2 = 100 → valorM2Total = 0
+      // horasTrabalho = 50, valorHora = 100 → valorHoraTotal = 5000
+      // (0 * 0.5 + 5000 * 0.5) / 1 = 2500
+      expect(res.body.valorBase).toBe(2500);
+      expect(res.body.metodoCalculo).toBe('media_ponderada');
     });
 
     it('deve retornar erro 400 para tipo ambos com ambos valores zero', async () => {
@@ -847,7 +853,7 @@ describe('API de Cálculo de Orçamento Arquitetônico', () => {
       expect(typeof res.body.valorBase).toBe('number');
       expect(typeof res.body.valorFinal).toBe('number');
       expect(typeof res.body.adicionais.render).toBe('number');
-      expect(typeof res.body.adicionais.mobiliario).toBe('number');
+      expect(typeof res.body.adicionais.moveisModulados).toBe('number');
       expect(typeof res.body.adicionais.paginacaoPisos).toBe('number');
     });
 
@@ -918,19 +924,11 @@ describe('API de Cálculo de Orçamento Arquitetônico', () => {
         area: 100,
         valorM2: 100,
         renders: {
-          ativo: true,
           quantidade: 1,
           valorUnitario: 1000
         },
-        mobiliario: {
-          ativo: true,
-          itens: [{ nome: 'Item', valor: 500 }]
-        },
-        paginacaoPisos: {
-          ativo: true,
-          area: 10,
-          valorM2: 100
-        }
+        moveisModulados: 500,
+        paginacaoPisos: 1000
       });
 
       const res = await request(app)
@@ -938,9 +936,14 @@ describe('API de Cálculo de Orçamento Arquitetônico', () => {
         .send(payload)
         .expect(200);
 
-      const somaAdicionais = 1000 + 500 + 1000;
-      const valorTotal = 10000 + somaAdicionais;
-      expect(res.body.valorFinal).toBe(valorTotal);
+      // render: 1 * 1000 = 1000
+      // moveisModulados: 500
+      // paginacaoPisos: 1000
+      // Total: 10000 (valorBase m2: 100 * 100) + 1000 + 500 + 1000 = 12500
+      expect(res.body.adicionais.render).toBe(1000);
+      expect(res.body.adicionais.moveisModulados).toBe(500);
+      expect(res.body.adicionais.paginacaoPisos).toBe(1000);
+      expect(res.body.valorFinal).toBe(12500);
     });
 
     it('deve validar tipos corretamente m2, hora e ambos', async () => {
@@ -988,10 +991,10 @@ describe('API de Cálculo de Orçamento Arquitetônico', () => {
 
     it('deve manter precisão com valores decimais em múltiplas operações', async () => {
       const payload = criarPayloadPadrao({
+        tipoCobranca: 'm2',
         area: 33.33,
         valorM2: 75.50,
         renders: {
-          ativo: true,
           quantidade: 2,
           valorUnitario: 250.75
         }
@@ -1002,6 +1005,9 @@ describe('API de Cálculo de Orçamento Arquitetônico', () => {
         .send(payload)
         .expect(200);
 
+      // valorBase: 33.33 * 75.50 = 2516.315 ≈ 2516.32
+      // render: 2 * 250.75 = 501.50
+      // valorFinal: 2516.32 + 501.50 = 3017.82
       expect(res.body.valorBase).toBeGreaterThan(0);
       expect(res.body.adicionais.render).toBeGreaterThan(0);
       expect(res.body.valorFinal).toBeGreaterThan(0);

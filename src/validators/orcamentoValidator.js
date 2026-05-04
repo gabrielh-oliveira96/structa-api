@@ -34,14 +34,14 @@ export const calcularOrcamentoSchema = z.object({
 }).strict().superRefine((data, ctx) => {
   // Validações condicionais baseadas em tipoCobranca
   if (data.tipoCobranca === 'm2' || data.tipoCobranca === 'ambos') {
-    if (data.area <= 0) {
+    if (data.area < 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.too_small,
         minimum: 0,
         type: 'number',
-        inclusive: false,
+        inclusive: true,
         path: ['area'],
-        message: 'Área deve ser um valor positivo'
+        message: 'Área deve ser não-negativa'
       });
     }
     if (data.valorM2 < 0) {
@@ -77,6 +77,15 @@ export const calcularOrcamentoSchema = z.object({
         message: 'Valor hora deve ser não-negativo'
       });
     }
+  }
+
+  // Para tipo ambos, pelo menos um dos valores deve ser positivo
+  if (data.tipoCobranca === 'ambos' && data.area === 0 && data.horasTrabalho === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['tipoCobranca'],
+      message: 'Para tipo "ambos", pelo menos área ou horas de trabalho deve ser positivo'
+    });
   }
 });
 
